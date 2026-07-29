@@ -203,6 +203,8 @@ const server = http.createServer(async (req, res) => {
     return serveFile(res, "player.html", "text/html; charset=utf-8");
   if (req.method === "GET" && p === "/host")
     return serveFile(res, "host.html", "text/html; charset=utf-8");
+  if (req.method === "GET" && p === "/logo.png")
+    return serveFile(res, "logo.png", "image/png");
 
   // SSE
   if (req.method === "GET" && p === "/events") {
