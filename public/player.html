@@ -37,7 +37,11 @@
   .timer{font-size:56px;font-weight:900;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums}
   .timer.low{color:var(--bad)}
   .q{font-size:19px;font-weight:700;text-align:center;line-height:1.35;margin:6px 0 4px}
-  .qimg{display:block;margin:10px auto;max-width:100%;max-height:40vh;border-radius:14px;border:1px solid var(--line)}
+  .qimg{display:block;margin:10px auto;max-width:100%;max-height:40vh;border-radius:14px;border:1px solid var(--line);cursor:zoom-in}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;
+    z-index:50;cursor:zoom-out;padding:14px}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px}
+  .lightbox .hint{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#9db3cf;font-size:13px}
   .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800}
   .status{text-align:center;font-size:15px;color:var(--muted);margin-top:6px}
   ul.answers{list-style:none;padding:0;margin:16px 0 0}
@@ -109,6 +113,7 @@
 </div>
 
 <div class="flash" id="flash"></div>
+<div class="lightbox" id="lightbox" style="display:none"><img id="lightboxImg" alt="" /><div class="hint">Touche pour fermer</div></div>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -227,6 +232,16 @@ function renderList(ul, answers){
     ul.appendChild(li);
   });
 }
+
+// Zoom image plein écran
+$("qimg").addEventListener("click",()=>{
+  const s=$("qimg").getAttribute("src");
+  if(!s) return;
+  $("lightboxImg").src=s; $("lightbox").style.display="flex";
+});
+$("lightbox").addEventListener("click",()=>{
+  $("lightbox").style.display="none"; $("lightboxImg").removeAttribute("src");
+});
 
 // Reprise auto si déjà inscrit
 if(me && me.id){ enterGame(); }

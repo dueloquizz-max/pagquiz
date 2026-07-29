@@ -64,7 +64,11 @@
     color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
   .imgbtn.danger{border-color:var(--bad);color:#ffd0d8}
   .preview{margin-top:10px;max-width:100%;max-height:180px;border-radius:12px;border:1px solid var(--line);display:block}
-  .qimg{display:block;margin:12px auto 0;max-width:100%;max-height:34vh;border-radius:14px;border:1px solid var(--line)}
+  .qimg{display:block;margin:12px auto 0;max-width:100%;max-height:34vh;border-radius:14px;border:1px solid var(--line);cursor:zoom-in}
+  .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.94);display:flex;align-items:center;justify-content:center;
+    z-index:50;cursor:zoom-out;padding:14px}
+  .lightbox img{max-width:100%;max-height:100%;border-radius:10px}
+  .lightbox .hint{position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#9db3cf;font-size:13px}
   .banner{background:rgba(237,187,0,.1);border:1px solid var(--or);color:#ffe9a8;border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px;line-height:1.5}
   .flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;
     padding:12px 18px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
@@ -135,6 +139,7 @@
 </div>
 
 <div class="flash" id="flash"></div>
+<div class="lightbox" id="lightbox" style="display:none"><img id="lightboxImg" alt="" /><div class="hint">Touche pour fermer</div></div>
 
 <script>
 const $ = (id)=>document.getElementById(id);
@@ -300,6 +305,16 @@ function render(s){
     list.appendChild(card);
   });
 }
+
+// Zoom image plein écran
+$("qimg").addEventListener("click",()=>{
+  const s=$("qimg").getAttribute("src");
+  if(!s) return;
+  $("lightboxImg").src=s; $("lightbox").style.display="flex";
+});
+$("lightbox").addEventListener("click",()=>{
+  $("lightbox").style.display="none"; $("lightboxImg").removeAttribute("src");
+});
 
 // Reprise auto si jeton déjà connu
 if(token){ tryConnect(false); }
