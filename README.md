@@ -24,6 +24,35 @@ Le script affiche :
 > tant que le script tourne sur ton Mac. Ferme avec **Ctrl+C**. À chaque relance, un nouveau
 > lien et un nouveau jeton sont générés.
 
+## Lien permanent (marche même Mac éteint)
+
+Le code est déjà sur GitHub : `dueloquizz-max/pagquiz` (privé).
+Pour le mettre en ligne gratuitement sur **Render** :
+
+1. Va sur **https://render.com** → **Get Started** → **Sign in with GitHub**
+   (choisis le compte `dueloquizz-max`).
+2. En haut à droite : **New +** → **Blueprint**.
+3. Choisis le dépôt **pagquiz** (autorise Render à y accéder si demandé) → **Connect**.
+4. Render lit `render.yaml` et te demande une valeur pour **HOST_TOKEN** :
+   tape ton code animateur (ex : `soiree2026`) — c'est ce que tu taperas sur l'écran animateur.
+5. Clique **Apply** / **Create** et attends ~2-3 min (première mise en ligne).
+
+Ton lien sera du type `https://pagquiz.onrender.com` :
+
+- **Joueurs**   : `https://pagquiz.onrender.com/`
+- **Animateur** : `https://pagquiz.onrender.com/host` (tape ton HOST_TOKEN)
+
+> ⚠️ Sur le plan gratuit, le service « s'endort » après ~15 min sans visite : le tout
+> premier accès peut mettre ~50 s à réveiller le serveur. Ouvre le lien animateur une
+> minute avant de commencer, et c'est réglé.
+
+### Mettre à jour le jeu plus tard
+Après une modification, dans le Terminal :
+```bash
+cd ~/QUIZZBARCA && git add -A && git commit -m "maj" && git push
+```
+Render redéploie tout seul en quelques minutes.
+
 ## Jouer sur le même Wi-Fi (sans internet)
 
 Si tout le monde est dans la même pièce :
