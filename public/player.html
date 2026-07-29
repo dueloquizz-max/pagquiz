@@ -37,6 +37,7 @@
   .timer{font-size:56px;font-weight:900;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums}
   .timer.low{color:var(--bad)}
   .q{font-size:19px;font-weight:700;text-align:center;line-height:1.35;margin:6px 0 4px}
+  .qimg{display:block;margin:10px auto;max-width:100%;max-height:40vh;border-radius:14px;border:1px solid var(--line)}
   .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800}
   .status{text-align:center;font-size:15px;color:var(--muted);margin-top:6px}
   ul.answers{list-style:none;padding:0;margin:16px 0 0}
@@ -82,6 +83,7 @@
 
       <div id="playBox" style="display:none">
         <div class="timer" id="timer">1:00</div>
+        <img id="qimg" class="qimg" alt="" style="display:none" />
         <div class="q" id="question">—</div>
         <label for="answer">Ta réponse</label>
         <input id="answer" type="text" placeholder="Tape un nom…" maxlength="120" autocomplete="off" enterkeyhint="send" />
@@ -193,6 +195,11 @@ function render(s){
 
   if(showPlay){
     $("question").textContent = r.question || "Cite une réponse…";
+    const qimg=$("qimg"), src=r.image||"";
+    if(qimg.getAttribute("src")!==src){
+      if(src){ qimg.src=src; qimg.style.display="block"; }
+      else { qimg.style.display="none"; qimg.removeAttribute("src"); }
+    }
     if(!timerInt) timerInt = setInterval(tick, 250);
     tick();
     // focus auto sur nouvelle manche

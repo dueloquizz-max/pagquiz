@@ -24,9 +24,21 @@ const state = {
     endsAt: 0,
     durationMs: 60000,
     used: new Set(), // réponses normalisées déjà données (par n'importe qui)
+    image: null, // { mime, buf } — image optionnelle de la manche
   },
   endTimer: null,
 };
+
+// Décode une data URL (data:image/jpeg;base64,....) en { mime, buf }
+function decodeDataUrl(s) {
+  const m = /^data:([^;,]+);base64,(.+)$/s.exec(s || "");
+  if (!m) return null;
+  try {
+    return { mime: m[1], buf: Buffer.from(m[2], "base64") };
+  } catch {
+    return null;
+  }
+}
 
 // Clients SSE connectés : { res, role: 'host'|'player', playerId }
 const clients = new Set();
@@ -64,6 +76,7 @@ function hostSnapshot() {
       question: state.round.question,
       endsAt: state.round.endsAt,
       durationMs: state.round.durationMs,
+      image: state.round.image ? "/round-image?v=" + state.round.number : null,
     },
     players: [...state.players.values()].map(publicPlayer),
   };
@@ -83,6 +96,7 @@ function playerSnapshot(playerId) {
       question: state.round.question,
       endsAt: state.round.endsAt,
       durationMs: state.round.durationMs,
+      image: state.round.image ? "/round-image?v=" + state.round.number : null,
     },
   };
 }
@@ -103,7 +117,7 @@ function broadcast() {
 }
 
 // ---------- Logique de manche ----------
-function startRound(question, durationSec) {
+function startRound(question, durationSec, imageDataUrl) {
   if (state.endTimer) {
     clearTimeout(state.endTimer);
     state.endTimer = null;
@@ -116,6 +130,7 @@ function startRound(question, durationSec) {
   state.round.endsAt = Date.now() + durationMs;
   state.round.durationMs = durationMs;
   state.round.used = new Set();
+  state.round.image = imageDataUrl ? decodeDataUrl(imageDataUrl) : null;
   // Nouvelle manche : on efface les réponses et on réintègre tout le monde.
   for (const p of state.players.values()) {
     p.answers = [];
@@ -177,7 +192,7 @@ function readBody(req) {
     let body = "";
     req.on("data", (c) => {
       body += c;
-      if (body.length > 1e6) req.destroy();
+      if (body.length > 12e6) req.destroy(); // ~12 Mo (marge pour une image)
     });
     req.on("end", () => {
       try {
@@ -205,6 +220,17 @@ const server = http.createServer(async (req, res) => {
     return serveFile(res, "host.html", "text/html; charset=utf-8");
   if (req.method === "GET" && p === "/logo.png")
     return serveFile(res, "logo.png", "image/png");
+
+  // Image de la manche en cours (servie une seule fois, pas dans les snapshots)
+  if (req.method === "GET" && p === "/round-image") {
+    const img = state.round.image;
+    if (!img) {
+      res.writeHead(404, { "Content-Type": "text/plain" });
+      return res.end("no image");
+    }
+    res.writeHead(200, { "Content-Type": img.mime, "Cache-Control": "no-cache" });
+    return res.end(img.buf);
+  }
 
   // SSE
   if (req.method === "GET" && p === "/events") {
@@ -279,7 +305,7 @@ const server = http.createServer(async (req, res) => {
     if (body.token !== HOST_TOKEN) return json(res, 403, { error: "Jeton invalide." });
 
     if (p === "/host/start") {
-      startRound(body.question, Number(body.duration));
+      startRound(body.question, Number(body.duration), body.image);
       return json(res, 200, { ok: true });
     }
     if (p === "/host/stop") {
@@ -316,6 +342,7 @@ const server = http.createServer(async (req, res) => {
         endsAt: 0,
         durationMs: 60000,
         used: new Set(),
+        image: null,
       };
       if (body.clearPlayers) state.players.clear();
       else

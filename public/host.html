@@ -60,6 +60,11 @@
   .chip.dup::before{content:"⚠︎ ";font-size:12px}
   .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px}
   .tokbox input{margin-bottom:8px}
+  .imgbtn{display:inline-block;padding:11px 14px;border-radius:12px;background:#0e1c2e;border:1px solid var(--line);
+    color:var(--txt);font-size:14px;font-weight:700;cursor:pointer;margin-right:8px}
+  .imgbtn.danger{border-color:var(--bad);color:#ffd0d8}
+  .preview{margin-top:10px;max-width:100%;max-height:180px;border-radius:12px;border:1px solid var(--line);display:block}
+  .qimg{display:block;margin:12px auto 0;max-width:100%;max-height:34vh;border-radius:14px;border:1px solid var(--line)}
   .banner{background:rgba(237,187,0,.1);border:1px solid var(--or);color:#ffe9a8;border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px;line-height:1.5}
   .flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;
     padding:12px 18px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
@@ -88,6 +93,13 @@
     <div class="card">
       <label for="question">Question de la manche</label>
       <input id="question" type="text" placeholder="Ex : Cite un joueur qui a joué au Real Madrid" maxlength="300" />
+
+      <label>Image (optionnel)</label>
+      <label class="imgbtn" for="imgFile">📷 Ajouter une image</label>
+      <button class="imgbtn danger" id="imgClear" style="display:none">✕ Retirer</button>
+      <input id="imgFile" type="file" accept="image/*" style="display:none" />
+      <img id="imgPreview" class="preview" alt="" style="display:none" />
+
       <div class="row" style="margin-top:12px;align-items:flex-end">
         <div style="max-width:120px">
           <label for="duration">Durée (s)</label>
@@ -100,6 +112,7 @@
     <div class="card">
       <div id="timer" class="timer off">Aucune manche</div>
       <div id="qbig" class="qbig"></div>
+      <img id="qimg" class="qimg" alt="" style="display:none" />
       <div class="row" style="margin-top:12px">
         <button class="btn blau" id="stopBtn">⏹ Arrêter</button>
         <button class="btn ghost" id="resetBtn">↺ Nouvelle partie</button>
@@ -160,13 +173,48 @@ function tryConnect(fromForm){
 
 function showDash(){ $("authView").style.display="none"; $("dash").style.display="block"; }
 
+// --- Image (compressée côté téléphone avant l'envoi) ---
+let pendingImage=null;
+function downscale(file, maxDim, quality){
+  return new Promise((resolve,reject)=>{
+    const img=new Image(); const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      const scale=Math.min(1, maxDim/Math.max(img.width,img.height));
+      const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+      const c=document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL("image/jpeg", quality));
+    };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(); };
+    img.src=url;
+  });
+}
+$("imgFile").addEventListener("change", async (e)=>{
+  const file=e.target.files && e.target.files[0];
+  if(!file) return;
+  try{
+    pendingImage=await downscale(file, 1280, 0.72);
+    $("imgPreview").src=pendingImage; $("imgPreview").style.display="block";
+    $("imgClear").style.display="inline-block";
+  }catch{ flash("Image illisible"); }
+});
+function clearImage(){
+  pendingImage=null;
+  $("imgFile").value="";
+  $("imgPreview").style.display="none"; $("imgPreview").removeAttribute("src");
+  $("imgClear").style.display="none";
+}
+$("imgClear").onclick=clearImage;
+
 // --- Commandes ---
 $("startBtn").onclick = async ()=>{
   const question=$("question").value.trim();
   const duration=parseInt($("duration").value,10)||60;
   if(!question){ flash("Écris une question."); $("question").focus(); return; }
-  const {ok,data}=await post("/host/start",{question,duration});
-  if(!ok) flash(data.error||"Erreur");
+  const {ok,data}=await post("/host/start",{question,duration,image:pendingImage});
+  if(!ok){ flash(data.error||"Erreur"); return; }
+  clearImage(); // l'image est envoyée : on nettoie pour la manche suivante
 };
 $("stopBtn").onclick = async ()=>{ await post("/host/stop",{}); };
 $("resetBtn").onclick = async ()=>{
@@ -201,6 +249,14 @@ function render(s){
     if(timerInt){clearInterval(timerInt);timerInt=null;}
     if(r.number>0){ $("timer").className="timer off"; $("timer").textContent="Manche terminée"; $("qbig").textContent=r.question||""; }
     else { $("timer").className="timer off"; $("timer").textContent="Aucune manche"; $("qbig").textContent=""; }
+  }
+
+  // Image de la manche (chargée une seule fois, seulement quand elle change)
+  const qimg=$("qimg");
+  const src=(r.number>0 && r.image)?r.image:"";
+  if(qimg.getAttribute("src")!==src){
+    if(src){ qimg.src=src; qimg.style.display="block"; }
+    else { qimg.style.display="none"; qimg.removeAttribute("src"); }
   }
 
   const players=s.players||[];
