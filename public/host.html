@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#a50044" />
+<title>PagQUIZ — Animateur</title>
+<style>
+  :root{
+    --blau:#004d98; --grana:#a50044; --or:#edbb00;
+    --bg:#0b1622; --card:#14243a; --line:#25405f; --txt:#eaf1fb; --muted:#9db3cf;
+    --ok:#1fbf75; --bad:#ff4d6d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -10%,#3a1030 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100dvh;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:680px;margin:0 auto;padding:18px 14px 48px}
+  header{text-align:center;margin-bottom:6px}
+  .logo{font-weight:900;letter-spacing:1px;font-size:24px;
+    background:linear-gradient(90deg,var(--blau),var(--grana));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .logo b{color:var(--or);-webkit-text-fill-color:var(--or)}
+  .sub{color:var(--muted);font-size:13px;text-align:center;margin-bottom:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  h1{font-size:18px;margin:0 0 6px}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 6px}
+  input[type=text],input[type=number]{width:100%;padding:14px;font-size:16px;border-radius:12px;border:1px solid var(--line);
+    background:#0e1c2e;color:var(--txt);outline:none}
+  input:focus{border-color:var(--or)}
+  .btn{padding:14px;font-size:16px;font-weight:800;border:none;border-radius:12px;color:#fff;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .btn.grana{background:linear-gradient(90deg,var(--grana),#c60052);width:100%}
+  .btn.blau{background:linear-gradient(90deg,var(--blau),#0068cf)}
+  .btn.ghost{background:#0e1c2e;border:1px solid var(--line);color:var(--txt)}
+  .btn.small{padding:9px 12px;font-size:13px;border-radius:10px}
+  .row{display:flex;gap:10px}
+  .row > *{flex:1}
+  .timer{font-size:44px;font-weight:900;text-align:center;font-variant-numeric:tabular-nums;letter-spacing:1px}
+  .timer.low{color:var(--bad)}
+  .timer.off{color:var(--muted);font-size:20px;font-weight:700}
+  .qbig{text-align:center;font-size:16px;color:var(--muted);margin-top:2px;min-height:20px}
+  .players{margin-top:4px}
+  .pcard{background:#0e1c2e;border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-top:10px}
+  .pcard.elim{opacity:.55}
+  .phead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .pname{font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px}
+  .dotc{width:9px;height:9px;border-radius:50%;background:var(--muted);display:inline-block}
+  .dotc.on{background:var(--ok)}
+  .count{color:var(--muted);font-size:12px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chip{padding:6px 12px;border-radius:999px;font-size:14px;background:#152a44;border:1px solid var(--line);
+    color:var(--txt);font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;
+    display:inline-flex;align-items:center;gap:6px;transition:transform .06s}
+  .chip:active{transform:scale(.96)}
+  .chip::after{content:"";width:0}
+  .chip.dup{background:rgba(255,77,109,.16);border-color:var(--bad);color:#ffd0d8}
+  .chip.dup::before{content:"⚠︎ ";font-size:12px}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px}
+  .tokbox input{margin-bottom:8px}
+  .banner{background:rgba(237,187,0,.1);border:1px solid var(--or);color:#ffe9a8;border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px;line-height:1.5}
+  .flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;
+    padding:12px 18px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .flash.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Pag<b>QUIZ</b> ⚽</div>
+    <div class="sub">Écran animateur</div>
+  </header>
+
+  <!-- Connexion animateur -->
+  <div id="authView" class="card tokbox">
+    <h1>Connexion animateur</h1>
+    <div class="sub" style="text-align:left">Entre le <b>jeton animateur</b> affiché dans le terminal au démarrage du serveur.</div>
+    <label for="token">Jeton</label>
+    <input id="token" type="text" placeholder="ex : a1b2c3" autocomplete="off" />
+    <button class="btn grana" id="authBtn" style="margin-top:12px">Se connecter</button>
+    <div class="sub" id="authErr" style="color:var(--bad);display:none;text-align:left"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dash" style="display:none">
+    <div class="card">
+      <label for="question">Question de la manche</label>
+      <input id="question" type="text" placeholder="Ex : Cite un joueur qui a joué au Real Madrid" maxlength="300" />
+      <div class="row" style="margin-top:12px;align-items:flex-end">
+        <div style="max-width:120px">
+          <label for="duration">Durée (s)</label>
+          <input id="duration" type="number" value="60" min="5" max="600" />
+        </div>
+        <button class="btn grana" id="startBtn">▶︎ Lancer la manche</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="timer" class="timer off">Aucune manche</div>
+      <div id="qbig" class="qbig"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn blau" id="stopBtn">⏹ Arrêter</button>
+        <button class="btn ghost" id="resetBtn">↺ Nouvelle partie</button>
+      </div>
+    </div>
+
+    <div class="card players">
+      <div class="phead"><h1 style="margin:0">Joueurs & réponses</h1>
+        <span class="count" id="pcount">0 joueur</span></div>
+      <div id="playerList"></div>
+    </div>
+
+    <div class="banner">
+      <b>Doublons :</b> les réponses identiques sont pré-signalées <b style="color:#ffd0d8">en rouge</b>.
+      Mais c'est <b>toi qui décides</b> : <b>clique sur n'importe quelle réponse</b> pour la marquer ou
+      l'enlever du rouge (utile pour les fautes d'orthographe ou les synonymes que le jeu ne repère pas).
+      Ensuite, clique <b>Éliminer</b> si tu veux sortir le joueur de la manche.
+    </div>
+  </div>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+let token = localStorage.getItem("qb_token") || "";
+let es=null, offset=0, curEndsAt=0, curActive=false, timerInt=null;
+
+function flash(m){const f=$("flash");f.textContent=m;f.classList.add("show");setTimeout(()=>f.classList.remove("show"),1600);}
+
+async function post(url, body){
+  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...body,token})});
+  return {ok:r.ok, data: await r.json().catch(()=>({}))};
+}
+
+// --- Auth ---
+$("authBtn").onclick = ()=>{
+  const t=$("token").value.trim();
+  if(!t) return;
+  token=t;
+  tryConnect(true);
+};
+$("token").addEventListener("keydown",e=>{if(e.key==="Enter")$("authBtn").click();});
+
+function tryConnect(fromForm){
+  if(es) es.close();
+  es = new EventSource(`/events?role=host&token=${encodeURIComponent(token)}`);
+  let opened=false;
+  es.onopen = ()=>{ opened=true; localStorage.setItem("qb_token",token); showDash(); };
+  es.onmessage = ev=>{ try{ render(JSON.parse(ev.data)); }catch(e){} };
+  es.onerror = ()=>{
+    if(!opened){
+      es.close();
+      if(fromForm){ $("authErr").style.display="block"; $("authErr").textContent="Jeton refusé. Vérifie dans le terminal."; }
+    }
+  };
+}
+
+function showDash(){ $("authView").style.display="none"; $("dash").style.display="block"; }
+
+// --- Commandes ---
+$("startBtn").onclick = async ()=>{
+  const question=$("question").value.trim();
+  const duration=parseInt($("duration").value,10)||60;
+  if(!question){ flash("Écris une question."); $("question").focus(); return; }
+  const {ok,data}=await post("/host/start",{question,duration});
+  if(!ok) flash(data.error||"Erreur");
+};
+$("stopBtn").onclick = async ()=>{ await post("/host/stop",{}); };
+$("resetBtn").onclick = async ()=>{
+  if(!confirm("Nouvelle partie : effacer les réponses et réintégrer tout le monde ?")) return;
+  await post("/host/reset",{});
+  $("question").value="";
+};
+
+async function toggleElim(id, val){ await post("/host/eliminate",{playerId:id, eliminated:val}); }
+async function markDup(id, index, dup){ await post("/host/mark",{playerId:id, index, duplicate:dup}); }
+
+// --- Chrono ---
+function fmt(ms){const s=Math.max(0,Math.ceil(ms/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;}
+function tick(){
+  if(!curActive){ return; }
+  const remain=curEndsAt-(Date.now()+offset);
+  $("timer").textContent=fmt(remain);
+  $("timer").className="timer"+(remain<=10000?" low":"");
+}
+
+// --- Rendu ---
+function render(s){
+  if(s.role!=="host") return;
+  offset=s.serverNow-Date.now();
+  const r=s.round; curEndsAt=r.endsAt; curActive=r.active;
+
+  if(r.active){
+    if(!timerInt) timerInt=setInterval(tick,250);
+    tick();
+    $("qbig").textContent=r.question||"";
+  }else{
+    if(timerInt){clearInterval(timerInt);timerInt=null;}
+    if(r.number>0){ $("timer").className="timer off"; $("timer").textContent="Manche terminée"; $("qbig").textContent=r.question||""; }
+    else { $("timer").className="timer off"; $("timer").textContent="Aucune manche"; $("qbig").textContent=""; }
+  }
+
+  const players=s.players||[];
+  $("pcount").textContent = players.length+" joueur"+(players.length>1?"s":"");
+  const list=$("playerList");
+  if(players.length===0){ list.innerHTML='<div class="empty">Aucun joueur pour l\'instant. Partage le lien joueur !</div>'; return; }
+
+  list.innerHTML="";
+  players.forEach(p=>{
+    const card=document.createElement("div");
+    card.className="pcard"+(p.eliminated?" elim":"");
+    const head=document.createElement("div"); head.className="phead";
+
+    const name=document.createElement("div"); name.className="pname";
+    const dot=document.createElement("span"); dot.className="dotc"+(p.connected?" on":"");
+    name.append(dot, document.createTextNode(p.name + (p.eliminated?" (éliminé)":"")));
+
+    const btn=document.createElement("button");
+    btn.className="btn small "+(p.eliminated?"ghost":"blau");
+    btn.textContent=p.eliminated?"Réintégrer":"Éliminer";
+    btn.onclick=()=>toggleElim(p.id, !p.eliminated);
+
+    head.append(name, btn);
+    card.appendChild(head);
+
+    const chips=document.createElement("div"); chips.className="chips";
+    if(!p.answers || p.answers.length===0){
+      const c=document.createElement("span"); c.className="count"; c.style.marginTop="8px";
+      c.textContent="— aucune réponse —"; chips.appendChild(c);
+    } else {
+      p.answers.forEach((a,idx)=>{
+        const c=document.createElement("button");
+        c.className="chip"+(a.duplicate?" dup":"");
+        c.textContent=a.text;
+        c.title="Clique pour marquer / enlever le doublon";
+        c.onclick=()=>markDup(p.id, idx, !a.duplicate);
+        chips.appendChild(c);
+      });
+    }
+    card.appendChild(chips);
+    list.appendChild(card);
+  });
+}
+
+// Reprise auto si jeton déjà connu
+if(token){ tryConnect(false); }
+</script>
+</body>
+</html>

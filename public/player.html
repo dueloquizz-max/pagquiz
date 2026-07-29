@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#004d98" />
+<title>PagQUIZ — Joueur</title>
+<style>
+  :root{
+    --blau:#004d98; --grana:#a50044; --or:#edbb00;
+    --bg:#0b1622; --card:#14243a; --line:#25405f; --txt:#eaf1fb; --muted:#9db3cf;
+    --ok:#1fbf75; --bad:#ff4d6d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:radial-gradient(1200px 700px at 50% -10%,#12365f 0%,var(--bg) 55%);
+    color:var(--txt);min-height:100dvh;-webkit-tap-highlight-color:transparent}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 40px;min-height:100dvh;display:flex;flex-direction:column}
+  header{text-align:center;margin-bottom:18px}
+  .logo{font-weight:900;letter-spacing:1px;font-size:26px;
+    background:linear-gradient(90deg,var(--blau),var(--grana));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .logo b{color:var(--or);-webkit-text-fill-color:var(--or)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35)}
+  h1{font-size:20px;margin:0 0 4px}
+  label{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px}
+  input[type=text]{width:100%;padding:15px 16px;font-size:17px;border-radius:14px;border:1px solid var(--line);
+    background:#0e1c2e;color:var(--txt);outline:none}
+  input[type=text]:focus{border-color:var(--or)}
+  button{width:100%;padding:15px;font-size:17px;font-weight:800;border:none;border-radius:14px;color:#fff;
+    background:linear-gradient(90deg,var(--grana),#c60052);cursor:pointer;margin-top:14px}
+  button:active{transform:translateY(1px)}
+  button:disabled{opacity:.5}
+  .hint{font-size:13px;color:var(--muted);text-align:center;margin-top:12px;line-height:1.5}
+  .timer{font-size:56px;font-weight:900;text-align:center;letter-spacing:2px;font-variant-numeric:tabular-nums}
+  .timer.low{color:var(--bad)}
+  .q{font-size:19px;font-weight:700;text-align:center;line-height:1.35;margin:6px 0 4px}
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:800}
+  .status{text-align:center;font-size:15px;color:var(--muted);margin-top:6px}
+  ul.answers{list-style:none;padding:0;margin:16px 0 0}
+  ul.answers li{display:flex;justify-content:space-between;align-items:center;gap:10px;
+    background:#0e1c2e;border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin-top:8px;font-size:16px}
+  li.dup{border-color:var(--bad);background:rgba(255,77,109,.08)}
+  .tag-dup{background:var(--bad);color:#fff}
+  .tag-ok{background:rgba(31,191,117,.15);color:var(--ok)}
+  .big-elim{text-align:center;padding:20px 0}
+  .big-elim .em{font-size:46px}
+  .flash{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#000c;color:#fff;
+    padding:12px 18px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .flash.show{opacity:1}
+  .waiting .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--or);margin:0 3px;animation:b 1s infinite}
+  .waiting .dot:nth-child(2){animation-delay:.2s}.waiting .dot:nth-child(3){animation-delay:.4s}
+  @keyframes b{0%,100%{opacity:.3}50%{opacity:1}}
+  .foot{margin-top:auto;text-align:center;color:var(--muted);font-size:12px;padding-top:24px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Pag<b>QUIZ</b> ⚽</div>
+  </header>
+
+  <!-- Écran d'accueil / pseudo -->
+  <div id="joinView" class="card">
+    <h1>Rejoindre la partie</h1>
+    <div class="hint" style="text-align:left;margin-top:2px">Choisis un pseudo, puis attends que l'animateur lance une manche.</div>
+    <label for="name">Ton pseudo</label>
+    <input id="name" type="text" placeholder="Ex : Léo" maxlength="24" autocomplete="off" />
+    <button id="joinBtn">Entrer dans la partie</button>
+    <div class="hint" id="joinErr" style="color:var(--bad);display:none"></div>
+  </div>
+
+  <!-- Écran de jeu -->
+  <div id="gameView" style="display:none">
+    <div class="card" id="mainCard">
+      <div id="waitBox" class="waiting" style="text-align:center">
+        <h1 style="margin-bottom:8px">Salut <span id="meName">—</span> 👋</h1>
+        <div class="status">En attente de l'animateur<span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </div>
+
+      <div id="playBox" style="display:none">
+        <div class="timer" id="timer">1:00</div>
+        <div class="q" id="question">—</div>
+        <label for="answer">Ta réponse</label>
+        <input id="answer" type="text" placeholder="Tape un nom…" maxlength="120" autocomplete="off" enterkeyhint="send" />
+        <button id="answerBtn">Envoyer</button>
+        <ul class="answers" id="answerList"></ul>
+      </div>
+
+      <div id="doneBox" style="display:none;text-align:center">
+        <h1>⏱️ Temps écoulé</h1>
+        <div class="status">Attends la prochaine manche.</div>
+        <ul class="answers" id="doneList"></ul>
+      </div>
+
+      <div id="elimBox" class="big-elim" style="display:none">
+        <div class="em">💀</div>
+        <h1 style="color:var(--bad)">Éliminé</h1>
+        <div class="status">L'animateur t'a sorti de cette manche. Reviens la prochaine !</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">PagQUIZ · jeu de soirée</div>
+</div>
+
+<div class="flash" id="flash"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let me = JSON.parse(localStorage.getItem("qb_player") || "null");
+let es = null, offset = 0, lastRound = null, timerInt = null, curEndsAt = 0, curActive = false;
+
+function flash(msg){ const f=$("flash"); f.textContent=msg; f.classList.add("show"); setTimeout(()=>f.classList.remove("show"),1800); }
+
+async function post(url, body){
+  const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  return {ok:r.ok, data: await r.json().catch(()=>({}))};
+}
+
+// --- Rejoindre ---
+$("joinBtn").onclick = async () => {
+  const name = $("name").value.trim();
+  if(!name){ $("joinErr").style.display="block"; $("joinErr").textContent="Entre un pseudo."; return; }
+  $("joinBtn").disabled = true;
+  const {ok,data} = await post("/join",{name});
+  $("joinBtn").disabled = false;
+  if(!ok){ $("joinErr").style.display="block"; $("joinErr").textContent=data.error||"Erreur."; return; }
+  me = data; localStorage.setItem("qb_player", JSON.stringify(me));
+  enterGame();
+};
+$("name").addEventListener("keydown",(e)=>{ if(e.key==="Enter") $("joinBtn").click(); });
+
+function enterGame(){
+  $("joinView").style.display="none";
+  $("gameView").style.display="block";
+  $("meName").textContent = me.name;
+  connect();
+}
+
+// --- Répondre ---
+$("answerBtn").onclick = sendAnswer;
+$("answer").addEventListener("keydown",(e)=>{ if(e.key==="Enter") sendAnswer(); });
+async function sendAnswer(){
+  const text = $("answer").value.trim();
+  if(!text) return;
+  $("answer").value="";
+  $("answer").focus();
+  const {ok,data} = await post("/answer",{playerId:me.id, text});
+  if(!ok){ flash(data.error||"Refusé"); return; }
+  if(data.duplicate) flash("⚠️ Doublon : déjà cité !");
+}
+
+// --- SSE ---
+function connect(){
+  if(es) es.close();
+  es = new EventSource(`/events?playerId=${encodeURIComponent(me.id)}`);
+  es.onmessage = (ev)=>{ try{ render(JSON.parse(ev.data)); }catch(e){} };
+  es.onerror = ()=>{ /* EventSource se reconnecte tout seul */ };
+}
+
+function fmt(ms){ const s=Math.max(0,Math.ceil(ms/1000)); return `${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`; }
+
+function tick(){
+  const remain = curEndsAt - (Date.now()+offset);
+  $("timer").textContent = fmt(remain);
+  $("timer").classList.toggle("low", remain <= 10000);
+  if(remain<=0 && curActive){ /* attend le snapshot serveur pour verrouiller */ }
+}
+
+function render(s){
+  if(s.role!=="player") return;
+  offset = s.serverNow - Date.now();
+  const you = s.you;
+  // si le serveur ne me connaît plus (redémarrage), on repart au pseudo
+  if(!you){ localStorage.removeItem("qb_player"); location.reload(); return; }
+  $("meName").textContent = you.name;
+
+  const r = s.round;
+  curEndsAt = r.endsAt; curActive = r.active;
+
+  const showElim = you.eliminated;
+  const showPlay = r.active && !you.eliminated;
+  const showDone = !r.active && r.number>0 && !you.eliminated;
+  const showWait = !r.active && r.number===0 && !you.eliminated;
+
+  $("elimBox").style.display = showElim ? "block":"none";
+  $("playBox").style.display = showPlay ? "block":"none";
+  $("doneBox").style.display = showDone ? "block":"none";
+  $("waitBox").style.display = showWait ? "block":"none";
+
+  if(showPlay){
+    $("question").textContent = r.question || "Cite une réponse…";
+    if(!timerInt) timerInt = setInterval(tick, 250);
+    tick();
+    // focus auto sur nouvelle manche
+    if(lastRound !== r.number){ setTimeout(()=>$("answer").focus(),50); }
+  } else {
+    if(timerInt){ clearInterval(timerInt); timerInt=null; }
+  }
+
+  // Listes de réponses
+  renderList($("answerList"), you.answers);
+  renderList($("doneList"), you.answers);
+  lastRound = r.number;
+}
+
+function renderList(ul, answers){
+  ul.innerHTML="";
+  (answers||[]).forEach(a=>{
+    const li=document.createElement("li");
+    if(a.duplicate) li.className="dup";
+    const span=document.createElement("span"); span.textContent=a.text;
+    const tag=document.createElement("span");
+    tag.className="badge "+(a.duplicate?"tag-dup":"tag-ok");
+    tag.textContent=a.duplicate?"DOUBLON":"OK";
+    li.append(span,tag);
+    ul.appendChild(li);
+  });
+}
+
+// Reprise auto si déjà inscrit
+if(me && me.id){ enterGame(); }
+</script>
+</body>
+</html>

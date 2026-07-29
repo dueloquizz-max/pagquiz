@@ -1,0 +1,11 @@
+{
+  "name": "pagquiz",
+  "version": "1.0.0",
+  "description": "Jeu de soirée temps réel : l'animateur pose une question, les joueurs répondent depuis leur téléphone en 1 minute, doublons signalés.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "online": "./go-online.sh"
+  },
+  "license": "MIT"
+}

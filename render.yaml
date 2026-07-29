@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: pagquiz
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      # Ton code animateur : Render te le demandera au moment du déploiement.
+      # Choisis quelque chose de simple à retenir (ex : soiree2026).
+      - key: HOST_TOKEN
+        sync: false
